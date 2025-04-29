@@ -2,6 +2,7 @@ import hashlib
 import json
 from time import time
 import streamlit as st
+import os
 
 class Block:
     def __init__(self, index, timestamp, data, previous_hash):
@@ -19,12 +20,13 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.current_data = []
-        self.create_block(previous_hash='1', proof=100)  # Genesis block
+        self.load_chain()  # Load existing chain from file
 
     def create_block(self, proof, previous_hash):
         block = Block(len(self.chain) + 1, time(), self.current_data, previous_hash)
         self.current_data = []  # Reset current data
         self.chain.append(block)
+        self.save_chain()  # Save the updated chain to file
         return block
 
     def add_parcel_tracking(self, parcel_id, status, location):
@@ -42,6 +44,18 @@ class Blockchain:
 
     def to_dict(self):
         return [block.__dict__ for block in self.chain]
+
+    def save_chain(self):
+        with open('blockchain.json', 'w') as f:
+            json.dump(self.to_dict(), f)
+
+    def load_chain(self):
+        if os.path.exists('blockchain.json'):
+            with open('blockchain.json', 'r') as f:
+                chain_data = json.load(f)
+                for block_data in chain_data:
+                    block = Block(block_data['index'], block_data['timestamp'], block_data['data'], block_data['previous_hash'])
+                    self.chain.append(block)
 
 # Initialize the blockchain
 blockchain = Blockchain()
@@ -63,9 +77,8 @@ with st.form(key='parcel_form'):
 # Display the blockchain
 if st.button('View Blockchain'):
     chain_data = blockchain.to_dict()
-    st.write("Current Blockchain:")
     for block in chain_data:
-        st.write(f"Block {block['index']}:")
+        st.write(f"\nBlock {block['index']}:")
         st.write(f"Timestamp: {block['timestamp']}")
         st.write(f"Data: {block['data']}")
         st.write(f"Hash: {block['hash']}")
